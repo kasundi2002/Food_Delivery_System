@@ -2,25 +2,31 @@ const express = require("express");
 const router = express.Router();
 const {
   getAssignedOrders,
-  acceptOrder,
-  updateStatus,
   getDeliveryHistory,
+  acceptOrder,
+  updateOrderStatus,
   updateProfile,
-  getAllOrders,
   assignOrder,
-} = require("../controllers/deliveryPersonController");
-const checkActiveDeliveryPerson = require("../middleware/checkActiveDeliveryPerson");
-const verifyJWT = require("../Middleware/checkJWT.JS");
+} = require("./../Controllers/deliveryController");
+const { verifyToken, verifyRole } = require("../middleware/authMiddleware");
 
-//delivery service
-router.get("/all-orders", verifyJWT , getAllOrders);
-router.post("/assign/:orderId",verifyJWT , assignOrder);
+// Internal route: auto-assign driver to order
+router.post("/assign",verifyToken,assignOrder);
 
-//delivery person
-router.put("/profile", verifyJWT, checkActiveDeliveryPerson, updateProfile);
-router.get("/assigned-orders", verifyJWT ,checkActiveDeliveryPerson, getAssignedOrders);
-router.post("/accept/:id",verifyJWT, checkActiveDeliveryPerson, acceptOrder);
-router.post("/update-status/:id",verifyJWT, checkActiveDeliveryPerson, updateStatus);
-router.get("/history",verifyJWT, checkActiveDeliveryPerson, getDeliveryHistory);
+// Driver routes
+// This route is used to fetch all assigned orders for a driver
+router.get("/assigned",verifyToken,verifyRole("deliveryPerson"), getAssignedOrders);
+
+// This route is used to fetch the delivery history of a driver
+router.get("/history",verifyToken,verifyRole("deliveryPerson"),getDeliveryHistory);
+
+// This route is used to accept an order by a driver
+router.post("/accept/:orderId",verifyToken,verifyRole("deliveryPerson"),acceptOrder);
+
+// This route is used to update the status of an order by a driver
+router.put("/status/:orderId",verifyToken,verifyRole("deliveryPerson"),updateOrderStatus);
+
+// This route is used to update the profile of a driver
+router.put("/profile",verifyToken,verifyRole("deliveryPerson"),updateProfile);
 
 module.exports = router;

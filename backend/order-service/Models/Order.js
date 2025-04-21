@@ -50,6 +50,34 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "Pending",
     },
+
+    // New fields for enhanced tracking
+    lastUpdated: {
+      type: Date,
+      default: Date.now
+    },
+
+    statusHistory: [{
+      status: {
+        type: String,
+        enum: [
+          "Pending",
+          "Assigned",
+          "Accepted",
+          "PickedUp",
+          "OnTheWay",
+          "Delivered",
+        ]
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      },
+      updatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      }
+    }],
   },
   { timestamps: true }
 );

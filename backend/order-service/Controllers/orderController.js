@@ -1,4 +1,5 @@
 const Order = require("./../Models/Order");
+const orderService = require("../Services/orderService");
 
 const getAllOrders = async (req, res) => {
   try {
@@ -48,35 +49,30 @@ const acceptOrder = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
   try {
     const { deliveryPersonId, status } = req.body;
-    const order = await Order.findOne({
-      _id: req.params.id,
-      deliveryPerson: deliveryPersonId,
-    });
+    const orderId = req.params.id;
 
-    if (!order)
-      return res
-        .status(404)
-        .json({ message: "Order not found or not assigned to you" });
-
-    order.status = status;
-    await order.save();
-
-    res.status(200).json(order);
+    const updatedOrder = await orderService.updateOrderStatus(orderId, status, deliveryPersonId);
+    res.status(200).json(updatedOrder);
   } catch (err) {
-    res.status(500).json({ message: "Error updating order status" });
+    console.error("Update Order Status Error:", err.message);
+    res.status(400).json({ message: err.message });
   }
 };
 
 const getDeliveryHistory = async (req, res) => {
   try {
-    const { deliveryPersonId } = req.query;
-    const orders = await Order.find({
-      deliveryPerson: deliveryPersonId,
-      status: "Delivered",
-    });
+    const { deliveryPersonId, startDate, endDate, status } = req.query;
+    const filters = {
+      startDate,
+      endDate,
+      status
+    };
+
+    const orders = await orderService.getDeliveryHistory(deliveryPersonId, filters);
     res.status(200).json(orders);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching history" });
+    console.error("Get Delivery History Error:", err.message);
+    res.status(500).json({ message: "Error fetching delivery history" });
   }
 };
 

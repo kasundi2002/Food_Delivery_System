@@ -8,7 +8,7 @@ const app = express();
 
 app.use(express.json());
 
-app.use("/delivery", deliveryRoutes);
+app.use("/api/delivery", deliveryRoutes);
 
 const PORT = process.env.PORT || 4100;
 connectDB();
