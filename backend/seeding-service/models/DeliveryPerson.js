@@ -13,11 +13,9 @@ const deliveryPersonSchema = new mongoose.Schema(
         type: String,
         enum: ["Point"],
         default: "Point",
-        required: true,
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
-        required: true,
         required: true,
       },
     },
@@ -26,7 +24,6 @@ const deliveryPersonSchema = new mongoose.Schema(
         type: String,
         enum: ["Point"],
         default: "Point",
-        required: true,
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
@@ -48,6 +45,7 @@ const deliveryPersonSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+deliveryPersonSchema.index({ address: "2dsphere" });
 deliveryPersonSchema.index({ location: "2dsphere" }); // Enable geolocation queries
 
 module.exports = mongoose.model("DeliveryPerson", deliveryPersonSchema);

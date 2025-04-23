@@ -23,7 +23,25 @@ const registerUser = async (req, res) => {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) throw new Error("Email already registered");
+    if (
+      !req.body.address ||
+      !Array.isArray(req.body.address.coordinates) ||
+      req.body.address.coordinates.includes(null)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Valid address coordinates are required" });
+    }
 
+    if (
+      !req.body.location ||
+      !Array.isArray(req.body.location.coordinates) ||
+      req.body.location.coordinates.includes(null)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Valid location coordinates are required" });
+    }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -44,14 +62,14 @@ const registerUser = async (req, res) => {
     // If the role is restaurant or delivery, create a request entry
     if (role === "restaurant") {
         const newRestaurant = new Restaurant({
-            userId: newUser._id,
-            restaurantName:"",
-            restaurantOwner: name,
-            address:"",
-            phone:"",
-            email:email,
-            category:"",
-            status: "Inactive", 
+          userId: newUser._id,
+          restaurantName: userData.restaurantName || "", // fallback to empty if not provided
+          restaurantOwner: name,
+          address: userData.address || "",
+          phone: userData.phone || "",
+          email: email,
+          category: userData.category || "",
+          status: "Inactive",
         });
        const restaurantResponse = await newRestaurant.save();
        
@@ -66,15 +84,17 @@ const registerUser = async (req, res) => {
 
     } else if (role === "delivery") {
         const newDeliveryPerson = new DeliveryPerson({
-            userId: newUser._id,
-            name:name,
-            address:"",
-            location: { type: "Point", coordinates: [0, 0] },
-            email:email,
-            phone:"",
-            vehicleNumber:"",
-            license:"",
-            isAvailable: false,
+          userId: newUser._id,
+          name: name,
+          address: userData.address, // ✅ from request
+          location: userData.location, // ✅ from request
+          email: email,
+          phone: userData.phone || "",
+          vehicleNumber: userData.vehicleNumber || "",
+          license: userData.license || "",
+          gender: userData.gender || "Male",
+          isAvailable: userData.isAvailable ?? false,
+          status: userData.status || "Pending",
         });
         const deliveryResponse = await newDeliveryPerson.save();
 
@@ -89,14 +109,14 @@ const registerUser = async (req, res) => {
 
     } else if (role === "customer") {
         const newCustomer = new Customer({
-            userId: newUser._id,
-            name:name,
-            address: "",
-            phone:"",
-            email:email,
-            favoriteRestaurants: [],
-            orderHistory: [],
-            status: "Active",
+          userId: newUser._id,
+          name: name,
+          address: userData.address || "",
+          phone: userData.phone || "",
+          email: email,
+          favoriteRestaurants: [],
+          orderHistory: [],
+          status: "Active",
         });
         const CustomerResponse = await newCustomer.save();
 
@@ -111,11 +131,11 @@ const registerUser = async (req, res) => {
 
     } else if (role === "admin") {
         const newAdmin = new Admin({
-            userId: newUser._id,
-            name:name,
-            email:email,
-            phone:"",
-            status:"Active"
+          userId: newUser._id,
+          name: name,
+          email: email,
+          phone: userData.phone || "",
+          status: "Active",
         });
         const adminResponse = await newAdmin.save();
 

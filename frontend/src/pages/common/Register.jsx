@@ -1,84 +1,91 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import CustomerFields from "./role-fields/CustomerFields";
+import DeliveryPersonFields from "./role-fields/DeliveryPersonFields";
+import RestaurantFields from "./role-fields/RestaurantFields";
 import axios from "axios";
+import "./../../styles/pages/registerPage.css";
 
 const Register = () => {
+  const [role, setRole] = useState("");
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    role: "customer",
+    role: "",
+    phone: "",
   });
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
 
-  const validate = () => {
-    if (!form.name || !form.email || !form.password || !form.role) {
-      setError("All fields are required.");
-      return false;
-    }
-    return true;
+  const [coordinates, setCoordinates] = useState(null); // 👈 Store location here
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = async () => {
-    if (!validate()) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Check if location is required and available
+    if (role === "delivery" && (!coordinates?.lat || !coordinates?.lng)) {
+      alert("Please select a location on the map.");
+      return;
+    }
+
+    // Final payload
+    const formData = {
+      ...form,
+      location: coordinates, // 👈 Add location here if present
+    };
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/users/register",
-        form
-      );
-      const { token, user } = res.data;
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      // Navigate to next step based on role
-      navigate(`/register/${form.role}`);
+      await axios.post("http://localhost:8080/api/auth/register", formData);
+      alert("Registration successful!");
     } catch (err) {
+      alert("Registration failed");
       console.error(err);
-      setError(err.response?.data?.message || "Registration failed");
     }
   };
 
   return (
-    <div className="container mt-4">
-      <h2>Register</h2>
-      {error && <p className="text-danger">{error}</p>}
+    <div className="register-container">
+      <h2>User Registration</h2>
 
       <input
-        className="form-control mb-2"
         placeholder="Name"
-        value={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value })}
+        onChange={(e) => handleChange("name", e.target.value)}
       />
       <input
-        className="form-control mb-2"
         placeholder="Email"
-        value={form.email}
-        onChange={(e) => setForm({ ...form, email: e.target.value })}
+        onChange={(e) => handleChange("email", e.target.value)}
       />
       <input
-        className="form-control mb-2"
         type="password"
         placeholder="Password"
-        value={form.password}
-        onChange={(e) => setForm({ ...form, password: e.target.value })}
+        onChange={(e) => handleChange("password", e.target.value)}
       />
 
       <select
-        className="form-select mb-3"
-        value={form.role}
-        onChange={(e) => setForm({ ...form, role: e.target.value })}
+        onChange={(e) => {
+          const selectedRole = e.target.value;
+          setRole(selectedRole);
+          handleChange("role", selectedRole);
+        }}
       >
+        <option value="">Select Role</option>
         <option value="customer">Customer</option>
         <option value="delivery">Delivery Person</option>
         <option value="restaurant">Restaurant</option>
       </select>
 
-      <button className="btn btn-primary" onClick={handleRegister}>
-        Register
-      </button>
+      {role === "customer" && <CustomerFields onChange={handleChange} />}
+      {role === "delivery" && (
+        <DeliveryPersonFields
+          onChange={handleChange}
+          onLocationChange={(coords) => setCoordinates(coords)} // 👈 receive location
+        />
+      )}
+      {role === "restaurant" && <RestaurantFields onChange={handleChange} />}
+
+      <button onClick={handleSubmit}>Register</button>
     </div>
   );
 };

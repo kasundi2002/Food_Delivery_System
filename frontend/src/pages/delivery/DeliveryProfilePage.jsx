@@ -1,14 +1,25 @@
 import { useEffect, useState } from "react";
-import api from "../services/api";
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    api
-      .get("/delivery/me")
-      .then((res) => setProfile(res.data))
-      .catch(() => alert("Failed to load profile"));
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:4000/delivery/profile", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        if (!res.ok) throw new Error("Failed to fetch profile");
+        const data = await res.json();
+        setProfile(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchProfile();
+    
   }, []);
 
   if (!profile) return <p>Loading profile...</p>;

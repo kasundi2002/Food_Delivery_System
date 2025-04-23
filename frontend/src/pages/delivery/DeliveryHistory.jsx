@@ -1,8 +1,8 @@
 // src/pages/DeliveryHistory.jsx
 import { useEffect, useState } from "react";
-import api from "../services/api";
-import OrderCard from "../components/OrderCard";
-import LoadingSpinner from "../components/LoadingSpinner";
+import axios from "axios";
+import OrderCard from "../../components/delivery/orderCard";
+import LoadingSpinner from "../../components/delivery/LoadingSpinner";
 
 const DeliveryHistory = () => {
   const [history, setHistory] = useState([]);
@@ -11,7 +11,11 @@ const DeliveryHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await api.get("/delivery/history");
+        const res = await axios.get("http://localhost:4000/delivery/history", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
         setHistory(res.data);
       } catch (err) {
         console.error("Failed to fetch history", err);

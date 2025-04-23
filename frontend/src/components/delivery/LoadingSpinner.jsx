@@ -1,10 +1,11 @@
-import { Circles } from "react-loader-spinner";
+import React from "react";
+import "../../styles/components/spinner.css"; // Adjust the path as necessary
 
 const LoadingSpinner = ({ message = "Loading..." }) => {
   return (
-    <div style={{ textAlign: "center", marginTop: "1rem" }}>
-      <Circles height="60" width="60" color="#0d6efd" />
-      <p style={{ color: "#555" }}>{message}</p>
+    <div style={{ textAlign: "center", marginTop: "2rem" }}>
+      <div className="lds-dual-ring"></div>
+      <p>{message}</p>
     </div>
   );
 };

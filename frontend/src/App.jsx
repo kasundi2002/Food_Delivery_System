@@ -1,20 +1,21 @@
-import { Routes, Route } from "react-router-dom";
-import Register from "./pages/Register";
-import CustomerInfo from "./pages/CustomerInfo";
-import DeliveryInfo from "./pages/DeliveryInfo";
-import RestaurantInfo from "./pages/RestaurantInfo";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Register from "./pages/common/Register";
+import Login from "./pages/common/Login";
+
+import DeliveryHome from "./pages/delivery/DeliveryHome";
+import DeliveryHistory from "./pages/delivery/DeliveryHistory";
+import DeliveryProfilePage from "./pages/delivery/DeliveryProfilePage";
 
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<Navigate to="/register" replace />} />
+
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/register/customer" element={<CustomerInfo />} />
-      <Route path="/register/restaurant" element={<RestaurantInfo />} />
 
       {/* Delivery Person */}
 
-      <Route path="/register/delivery" element={<DeliveryInfo />} />
       <Route path="/deliveryHome" element={<DeliveryHome />} />
       <Route path="/deliveryHistory" element={<DeliveryHistory />} />
       <Route path="/deliveryProfile" element={<DeliveryProfilePage />} />

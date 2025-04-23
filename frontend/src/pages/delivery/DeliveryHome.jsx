@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import api from "../services/api";
-import OrderCard from "../components/OrderCard";
+import axios from "axios";
+import OrderCard from "../../components/delivery/orderCard";
 
 const DeliveryHome = () => {
   const [assignedOrders, setAssignedOrders] = useState([]);
@@ -9,57 +9,116 @@ const DeliveryHome = () => {
   const [loading, setLoading] = useState(false);
   const [driverLocation, setDriverLocation] = useState(null);
 
+  const token = localStorage.getItem("token");
+
   // Fetch assigned orders
   useEffect(() => {
-    api
-      .get("/delivery/assigned-orders")
-      .then((res) => setAssignedOrders(res.data))
-      .catch(() => alert("Failed to load assigned orders"));
+    const fetchAssignedOrders = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:4000/delivery/assigned-orders",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        setAssignedOrders(res.data);
+      } catch (err) {
+        console.error("Failed to fetch assigned orders", err);
+      }
+    };
+    fetchAssignedOrders();
   }, []);
 
   // Fetch delivery history
   useEffect(() => {
-    api
-      .get("/delivery/history")
-      .then((res) => setDeliveryHistory(res.data))
-      .catch(() => alert("Failed to load delivery history"));
+    const fetchDeliveryHistory = async () => {
+      try {
+        const res = await axios.get("http://localhost:4000/delivery/history", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        setDeliveryHistory(res.data);
+      } catch (err) {
+        console.error("Failed to fetch delivery history", err);
+      }
+    };
+    fetchDeliveryHistory();
   }, []);
 
   // Fetch delivery person availability status
   useEffect(() => {
-    api
-      .get("/delivery/me")
-      .then((res) => setAvailability(res.data.isAvailable))
-      .catch(() => alert("Failed to load availability"));
+    const fetchAvailability = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:4000/delivery/availability",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        setAvailability(res.data.isAvailable);
+      } catch (err) {
+        console.error("Failed to fetch availability status", err);
+      }
+    };
+    fetchAvailability();
   }, []);
 
-useEffect(() => {
+  useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-    (pos) => {
+      (pos) => {
         const { longitude, latitude } = pos.coords;
         setDriverLocation([longitude, latitude]);
-    },
-    (err) => console.error("Geolocation error:", err)
+      },
+      (err) => console.error("Geolocation error:", err)
     );
-}, []);
+  }, []);
 
+  // Toggle delivery person availability
   const toggleAvailability = async () => {
     try {
       setLoading(true);
       const newStatus = !availability;
-      await api.put("/delivery/availability", { isAvailable: newStatus });
+
+      const res = await axios.post(
+        `http://localhost:4000/delivery/availability`,
+        { isAvailable: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log(res.data);
+      if(!res.data.success) {
+        throw new Error("Failed to update availability status");
+      }
       setAvailability(newStatus);
+      alert(`You are now ${newStatus ? "available" : "unavailable"}`);
     } catch (err) {
-        console.error(err);
+      console.error(err);
       alert("Failed to update availability");
     } finally {
       setLoading(false);
     }
   };
 
+  // Accept an order
   const handleAccept = async (orderId) => {
     try {
-      await api.post(`/delivery/accept/${orderId}`);
+      await axios.post(
+        `http://localhost:4000/delivery/accept/${orderId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       alert("Order accepted!");
       setAssignedOrders((orders) =>
         orders.map((o) =>
@@ -72,13 +131,23 @@ useEffect(() => {
     }
   };
 
+  // Decline an order
   const handleDecline = async (orderId) => {
     try {
-      await api.post(`/delivery/decline/${orderId}`);
+      await axios.post(
+        `http://localhost:4000/delivery/decline/${orderId}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
       alert("Order declined.");
       setAssignedOrders((orders) => orders.filter((o) => o._id !== orderId));
     } catch (err) {
-       console.error(err);
+      console.error(err);
       alert("Failed to decline order");
     }
   };
