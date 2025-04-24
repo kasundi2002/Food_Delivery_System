@@ -6,6 +6,9 @@ const Restaurant = require("./models/Restaurant");
 const DeliveryPerson = require("./models/DeliveryPerson");
 const Order = require("./models/Order");
 
+//node seed.js
+
+
 const connectDB = async () => {
   try {
     await mongoose.connect(
