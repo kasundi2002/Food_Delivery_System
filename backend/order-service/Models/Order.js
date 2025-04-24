@@ -9,9 +9,28 @@ const orderSchema = new mongoose.Schema(
       ref: "DeliveryPerson",
       default: null,
     },
-    items: [{ name: String, quantity: Number }],
-    total: Number,
+    items: [
+      {
+        foodItem: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "FoodItem",
+          required: true,
+        },
 
+        name: String, // Snapshot in case name changes later
+
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+
+        //   price: {
+        //     type: Number,
+        //     required: true,
+        //   }
+      },
+    ],
     // Delivery destination
     deliveryLocation: {
       type: {
@@ -50,34 +69,40 @@ const orderSchema = new mongoose.Schema(
       ],
       default: "Pending",
     },
-
-    // New fields for enhanced tracking
-    lastUpdated: {
-      type: Date,
-      default: Date.now
+    
+    totalAmount: {
+      type: Number,
+      required: true,
     },
 
-    statusHistory: [{
-      status: {
-        type: String,
-        enum: [
-          "Pending",
-          "Assigned",
-          "Accepted",
-          "PickedUp",
-          "OnTheWay",
-          "Delivered",
-        ]
-      },
-      timestamp: {
-        type: Date,
-        default: Date.now
-      },
-      updatedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
-    }],
+    deliveryTimeEstimate: {
+      type: Date,
+    },
+
+    deliveredAt: {
+      type: Date,
+    },
+
+    isCancelled: {
+      type: Boolean,
+      default: false,
+    },
+
+    cancellationReason: {
+      type: String,
+    },
+
+    paymentMethod: {
+      type: String,
+      enum: ["Cash on Delivery", "Credit Card", "UPI", "Net Banking"],
+      required: true,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["Pending", "Paid", "Failed"],
+      default: "Pending",
+    },
   },
   { timestamps: true }
 );

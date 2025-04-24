@@ -43,3 +43,23 @@
     text-align: center;
     margin-bottom: 10px;
 }
+
+.register-redirect-container {
+    text-align: center;
+    margin-top: 15px;
+}
+
+.register-redirect-btn {
+    background: none;
+    border: none;
+    color: #007bff;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+    padding: 0;
+}
+
+.register-redirect-btn:hover {
+    color: #0056b3;
+}

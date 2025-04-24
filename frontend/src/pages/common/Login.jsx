@@ -70,6 +70,15 @@ const Login = () => {
       />
 
       <button onClick={handleLogin}>Login</button>
+
+      <div className="register-redirect-container">
+        <button
+          onClick={() => navigate("/register")}
+          className="register-redirect-btn"
+        >
+          Don't have an account?{" "}
+        </button>
+      </div>
     </div>
   );
 };

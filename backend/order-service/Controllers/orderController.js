@@ -6,27 +6,27 @@ const createOrder = async (req, res) => {
     const {
       customerId,
       restaurantId,
-      deliveryPerson,
+      deliveryPerson, // optional
       items,
-      total,
+      totalAmount,
       deliveryLocation,
       restaurantLocation,
+      deliveryTimeEstimate,
+      paymentMethod,
+      paymentStatus, // optional
     } = req.body;
 
     const newOrder = new Order({
       customerId,
       restaurantId,
-      deliveryPerson: deliveryPerson || null, // optional
+      deliveryPerson: deliveryPerson || null,
       items,
-      total,
+      totalAmount,
       deliveryLocation,
       restaurantLocation,
-      statusHistory: [
-        {
-          status: "Pending",
-          updatedBy: customerId, // assuming the customer is creating
-        },
-      ],
+      deliveryTimeEstimate,
+      paymentMethod,
+      paymentStatus: paymentStatus || "Pending", // default if not provided
     });
 
     const savedOrder = await newOrder.save();
@@ -36,6 +36,7 @@ const createOrder = async (req, res) => {
     res.status(500).json({ message: "Failed to create order", error });
   }
 };
+
 
 const getAllOrders = async (req, res) => {
   try {
@@ -75,13 +76,13 @@ const assignDeliveryPerson = async (req, res) => {
     order.status = "Assigned";
 
     // 3. Push into status history
-    order.statusHistory.push({
-      status: "Assigned",
-      updatedBy: deliveryPersonId, // or use req.user.id if needed
-    });
+    // order.statusHistory.push({
+    //   status: "Assigned",
+    //   updatedBy: deliveryPersonId, // or use req.user.id if needed
+    // });
 
-    // 4. Update last updated time
-    order.lastUpdated = Date.now();
+    // // 4. Update last updated time
+    // order.lastUpdated = Date.now();
 
     await order.save();
 
