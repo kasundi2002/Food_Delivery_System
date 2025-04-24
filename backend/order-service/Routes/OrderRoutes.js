@@ -1,13 +1,48 @@
 const express = require("express");
 const router = express.Router();
-const orderController = require("../Controllers/orderController");
+const {verifyToken} = require("../Middleware/authMiddleware");
 const validateOrderStatus = require("../Middleware/validateOrderStatus");
+const {
+  createOrder,
+  getAllOrders,
+  getUnassignedOrders,
+  assignDeliveryPerson,
 
+  getAssignedOrders,
+  acceptOrder,
+  updateOrderStatus,
+  getDeliveryHistory,
+  declineOrder,
+} = require("../Controllers/orderController");
 // These routes are specifically for the delivery-service to call
-router.post("/accept/:id", orderController.acceptOrder);
-router.post("/update-status/:id", validateOrderStatus, orderController.updateOrderStatus);
-router.get("/history", orderController.getDeliveryHistory);
-router.get("/", orderController.getAllOrders);
-router.get("/unassigned", orderController.getUnassignedOrders);
+
+//http://order-service:4040/api/orders/create
+router.post("/create",createOrder);
+
+///http://order-service:4040/api/orders/
+router.get("/",getAllOrders);
+
+//http://order-service:4040/api/orders/unassigned
+router.get("/unassigned",getUnassignedOrders);
+
+//http://order-service:4040/api/orders/assign/:orderId
+router.post("/assign/:orderId",assignDeliveryPerson);
+
+
+//http://order-service:4040/api/orders/getAssignedOrders/:id
+router.get("/getAssignedOrders/:id", verifyToken, getAssignedOrders);
+
+//http://order-service:4040/api/orders/accept/:orderId
+router.post("/accept/:orderId",acceptOrder);
+
+//http://order-service:4040/api/orders//update-status/:id
+router.post("/update-status/:id", validateOrderStatus,updateOrderStatus);
+
+//http://order-service:4040/api/orders/history
+router.get("/history",getDeliveryHistory);
+
+//http://order-service:4040/api/orders/decline/:orderId
+router.put("/decline/:orderId",declineOrder);
+
 
 module.exports = router;

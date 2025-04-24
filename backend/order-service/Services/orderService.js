@@ -1,151 +1,312 @@
-const Order = require('../Models/Order');
-const { sendStatusUpdateNotification } = require('./notificationService');
+const Order = require("../Models/Order");
+const axios = require("axios"); // For calling user service
+
+const USER_SERVICE_URL = "http://user-service:8080/api/auth"; // Replace with actual URL
 
 /**
  * Update the status of an order
- * @param {string} orderId - The ID of the order to update
- * @param {string} status - New status of the order (Pending, Assigned, Accepted, PickedUp, OnTheWay, Delivered)
- * @param {string} deliveryPersonId - ID of the delivery person updating the status
- * @returns {Promise<Order>} Updated order object
  */
 const updateOrderStatus = async (orderId, status, deliveryPersonId) => {
-    try {
-        // Verify that the order exists and belongs to the delivery person
-        const order = await Order.findOne({ 
-            _id: orderId,
-            deliveryPerson: deliveryPersonId
-        });
+  try {
+    const order = await Order.findOne({
+      _id: orderId,
+      deliveryPerson: deliveryPersonId,
+    });
 
-        if (!order) {
-            throw new Error('Order not found or not assigned to this delivery person');
-        }
-
-        const previousStatus = order.status;
-
-        // Validate status transition
-        const validTransitions = {
-            'Assigned': ['Accepted'],
-            'Accepted': ['PickedUp'],
-            'PickedUp': ['OnTheWay'],
-            'OnTheWay': ['Delivered']
-        };
-
-        if (validTransitions[order.status] && !validTransitions[order.status].includes(status)) {
-            throw new Error(`Invalid status transition from ${order.status} to ${status}`);
-        }
-
-        // Update the order status
-        const updatedOrder = await Order.findByIdAndUpdate(
-            orderId,
-            { 
-                status: status,
-                lastUpdated: new Date(),
-                statusHistory: [...(order.statusHistory || []), {
-                    status: status,
-                    timestamp: new Date(),
-                    updatedBy: deliveryPersonId
-                }]
-            },
-            { new: true }
-        );
-
-        // Send notifications
-        await sendStatusUpdateNotification(updatedOrder, previousStatus);
-
-        return updatedOrder;
-    } catch (error) {
-        throw error;
+    if (!order) {
+      throw new Error(
+        "Order not found or not assigned to this delivery person"
+      );
     }
+
+    const previousStatus = order.status;
+
+    const validTransitions = {
+      Assigned: ["Accepted"],
+      Accepted: ["PickedUp"],
+      PickedUp: ["OnTheWay"],
+      OnTheWay: ["Delivered"],
+    };
+
+    if (
+      validTransitions[order.status] &&
+      !validTransitions[order.status].includes(status)
+    ) {
+      throw new Error(
+        `Invalid status transition from ${order.status} to ${status}`
+      );
+    }
+
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      {
+        status,
+        lastUpdated: new Date(),
+        statusHistory: [
+          ...(order.statusHistory || []),
+          {
+            status,
+            timestamp: new Date(),
+            updatedBy: deliveryPersonId,
+          },
+        ],
+      },
+      { new: true }
+    );
+
+    //await sendStatusUpdateNotification(updatedOrder, previousStatus);
+    return updatedOrder;
+  } catch (error) {
+    throw error;
+  }
 };
 
 /**
  * Get delivery history for a specific delivery person
- * @param {string} deliveryPersonId - ID of the delivery person
- * @param {Object} filters - Optional filters for the query
- * @param {Date} filters.startDate - Start date for filtering orders
- * @param {Date} filters.endDate - End date for filtering orders
- * @param {string} filters.status - Status to filter by
- * @returns {Promise<Array>} Array of orders
  */
 const getDeliveryHistory = async (deliveryPersonId, filters = {}) => {
-    try {
-        const query = {
-            deliveryPerson: deliveryPersonId
+  try {
+    const query = { deliveryPerson: deliveryPersonId };
+
+    if (filters.startDate || filters.endDate) {
+      query.createdAt = {};
+      if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
+      if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
+    }
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    const orders = await Order.find(query)
+      .sort({ createdAt: -1 })
+      .select("+statusHistory")
+      .exec();
+
+    const ordersWithData = await Promise.all(
+      orders.map(async (order) => {
+        const metrics = calculateDeliveryMetrics(order);
+        const orderObj = order.toObject();
+
+        // Fetch customer data
+        let customer = null;
+        try {
+          const res = await axios.get(
+            `${USER_SERVICE_URL}/${order.customerId}`
+          );
+          customer = res.data;
+        } catch (err) {
+          customer = { name: "Unknown", email: "Unavailable" };
+        }
+
+        // Simulate restaurant data (as restaurant service is not implemented)
+        const restaurant = {
+          name: "Sample Restaurant",
+          location: "Sample Location",
         };
 
-        // Add date range filter if provided
-        if (filters.startDate || filters.endDate) {
-            query.createdAt = {};
-            if (filters.startDate) {
-                query.createdAt.$gte = new Date(filters.startDate);
-            }
-            if (filters.endDate) {
-                query.createdAt.$lte = new Date(filters.endDate);
-            }
-        }
+        return {
+          ...orderObj,
+          customer,
+          restaurant, // Hardcoded restaurant data
+          metrics,
+        };
+      })
+    );
 
-        // Add status filter if provided
-        if (filters.status) {
-            query.status = filters.status;
-        }
-
-        const orders = await Order.find(query)
-            .sort({ createdAt: -1 })
-            .populate('customerId', 'name email')
-            .populate('restaurantId', 'name location')
-            .select('+statusHistory')  // Include the statusHistory field
-            .exec();
-
-        // Add performance metrics
-        const ordersWithMetrics = orders.map(order => {
-            const metrics = calculateDeliveryMetrics(order);
-            return {
-                ...order.toObject(),
-                metrics
-            };
-        });
-
-        return ordersWithMetrics;
-    } catch (error) {
-        throw error;
-    }
+    return ordersWithData;
+  } catch (error) {
+    throw error;
+  }
 };
 
-// Helper function to calculate delivery performance metrics
+// Helper to calculate delivery metrics
 const calculateDeliveryMetrics = (order) => {
-    const metrics = {
-        totalDeliveryTime: null,
-        pickupTime: null,
-        transitTime: null
-    };
+  const metrics = {
+    totalDeliveryTime: null,
+    pickupTime: null,
+    transitTime: null,
+  };
 
-    if (!order.statusHistory) return metrics;
+  if (!order.statusHistory) return metrics;
 
-    const findStatusTimestamp = (status) => {
-        const entry = order.statusHistory.find(h => h.status === status);
-        return entry ? entry.timestamp : null;
-    };
+  const findStatusTimestamp = (status) => {
+    const entry = order.statusHistory.find((h) => h.status === status);
+    return entry ? new Date(entry.timestamp) : null;
+  };
 
-    const acceptedTime = findStatusTimestamp('Accepted');
-    const pickedUpTime = findStatusTimestamp('PickedUp');
-    const deliveredTime = findStatusTimestamp('Delivered');
+  const acceptedTime = findStatusTimestamp("Accepted");
+  const pickedUpTime = findStatusTimestamp("PickedUp");
+  const deliveredTime = findStatusTimestamp("Delivered");
 
-    if (acceptedTime && deliveredTime) {
-        metrics.totalDeliveryTime = deliveredTime - acceptedTime;
-    }
+  if (acceptedTime && deliveredTime) {
+    metrics.totalDeliveryTime = deliveredTime - acceptedTime;
+  }
 
-    if (acceptedTime && pickedUpTime) {
-        metrics.pickupTime = pickedUpTime - acceptedTime;
-    }
+  if (acceptedTime && pickedUpTime) {
+    metrics.pickupTime = pickedUpTime - acceptedTime;
+  }
 
-    if (pickedUpTime && deliveredTime) {
-        metrics.transitTime = deliveredTime - pickedUpTime;
-    }
+  if (pickedUpTime && deliveredTime) {
+    metrics.transitTime = deliveredTime - pickedUpTime;
+  }
 
-    return metrics;
+  return metrics;
 };
 
 module.exports = {
-    updateOrderStatus,
-    getDeliveryHistory
+  updateOrderStatus,
+  getDeliveryHistory,
 };
+
+// const Order = require('../Models/Order');
+// const axios = require('axios'); // For calling user and restaurant services
+
+// const USER_SERVICE_URL = 'http://user-service/api/users'; // Change to actual URL
+// const RESTAURANT_SERVICE_URL = 'http://restaurant-service/api/restaurants'; // Change to actual URL
+
+// /**
+//  * Update the status of an order
+//  */
+// const updateOrderStatus = async (orderId, status, deliveryPersonId) => {
+//     try {
+//         const order = await Order.findOne({ 
+//             _id: orderId,
+//             deliveryPerson: deliveryPersonId
+//         });
+
+//         if (!order) {
+//             throw new Error('Order not found or not assigned to this delivery person');
+//         }
+
+//         const previousStatus = order.status;
+
+//         const validTransitions = {
+//             'Assigned': ['Accepted'],
+//             'Accepted': ['PickedUp'],
+//             'PickedUp': ['OnTheWay'],
+//             'OnTheWay': ['Delivered']
+//         };
+
+//         if (validTransitions[order.status] && !validTransitions[order.status].includes(status)) {
+//             throw new Error(`Invalid status transition from ${order.status} to ${status}`);
+//         }
+
+//         const updatedOrder = await Order.findByIdAndUpdate(
+//             orderId,
+//             { 
+//                 status,
+//                 lastUpdated: new Date(),
+//                 statusHistory: [...(order.statusHistory || []), {
+//                     status,
+//                     timestamp: new Date(),
+//                     updatedBy: deliveryPersonId
+//                 }]
+//             },
+//             { new: true }
+//         );
+
+//         await sendStatusUpdateNotification(updatedOrder, previousStatus);
+//         return updatedOrder;
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+
+// /**
+//  * Get delivery history for a specific delivery person
+//  */
+// const getDeliveryHistory = async (deliveryPersonId, filters = {}) => {
+//     try {
+//         const query = { deliveryPerson: deliveryPersonId };
+
+//         if (filters.startDate || filters.endDate) {
+//             query.createdAt = {};
+//             if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
+//             if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
+//         }
+
+//         if (filters.status) {
+//             query.status = filters.status;
+//         }
+
+//         const orders = await Order.find(query)
+//             .sort({ createdAt: -1 })
+//             .select('+statusHistory')
+//             .exec();
+
+//         const ordersWithData = await Promise.all(orders.map(async order => {
+//             const metrics = calculateDeliveryMetrics(order);
+//             const orderObj = order.toObject();
+
+//             // Fetch customer data
+//             let customer = null;
+//             try {
+//                 const res = await axios.get(`${USER_SERVICE_URL}/${order.customerId}`);
+//                 customer = res.data;
+//             } catch (err) {
+//                 customer = { name: 'Unknown', email: 'Unavailable' };
+//             }
+
+//             // Fetch restaurant data
+//             let restaurant = null;
+//             try {
+//                 const res = await axios.get(`${RESTAURANT_SERVICE_URL}/${order.restaurantId}`);
+//                 restaurant = res.data;
+//             } catch (err) {
+//                 restaurant = { name: 'Unknown', location: 'Unavailable' };
+//             }
+
+//             return {
+//                 ...orderObj,
+//                 customer,
+//                 restaurant,
+//                 metrics
+//             };
+//         }));
+
+//         return ordersWithData;
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+
+// // Helper to calculate delivery metrics
+// const calculateDeliveryMetrics = (order) => {
+//     const metrics = {
+//         totalDeliveryTime: null,
+//         pickupTime: null,
+//         transitTime: null
+//     };
+
+//     if (!order.statusHistory) return metrics;
+
+//     const findStatusTimestamp = (status) => {
+//         const entry = order.statusHistory.find(h => h.status === status);
+//         return entry ? new Date(entry.timestamp) : null;
+//     };
+
+//     const acceptedTime = findStatusTimestamp('Accepted');
+//     const pickedUpTime = findStatusTimestamp('PickedUp');
+//     const deliveredTime = findStatusTimestamp('Delivered');
+
+//     if (acceptedTime && deliveredTime) {
+//         metrics.totalDeliveryTime = deliveredTime - acceptedTime;
+//     }
+
+//     if (acceptedTime && pickedUpTime) {
+//         metrics.pickupTime = pickedUpTime - acceptedTime;
+//     }
+
+//     if (pickedUpTime && deliveredTime) {
+//         metrics.transitTime = deliveredTime - pickedUpTime;
+//     }
+
+//     return metrics;
+// };
+
+// module.exports = {
+//     updateOrderStatus,
+//     getDeliveryHistory
+// };
+

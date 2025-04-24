@@ -5,6 +5,8 @@ const SERVICE_BASE_URLS = {
   userService: process.env.USER_SERVICE_URL,
   orderService: process.env.ORDER_SERVICE_URL,
   productService: process.env.PRODUCT_SERVICE_URL,
+  restaurantService: process.env.RESTAURANT_SERVICE_URL,
+  deliveryService: process.env.DELIVERY_SERVICE_URL,
 };
 
 // Centralized request function for service-to-service communication

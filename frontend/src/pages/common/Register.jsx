@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CustomerFields from "./role-fields/CustomerFields";
 import DeliveryPersonFields from "./role-fields/DeliveryPersonFields";
 import RestaurantFields from "./role-fields/RestaurantFields";
@@ -6,6 +7,7 @@ import axios from "axios";
 import "./../../styles/pages/registerPage.css";
 
 const Register = () => {
+  const navigate = useNavigate();
   const [role, setRole] = useState("");
   const [form, setForm] = useState({
     name: "",
@@ -24,12 +26,16 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Check if location is required and available
-    if (role === "delivery" && (!coordinates?.lat || !coordinates?.lng)) {
-      alert("Please select a location on the map.");
-      return;
-    }
-
+    console.log("Form data before submission:", form);
+        if (
+            !coordinates || 
+            !Array.isArray(coordinates.coordinates) || 
+            coordinates.coordinates.length !== 2
+          ) {
+            alert("Please select a location on the map.");
+            return;
+            }
+    
     // Final payload
     const formData = {
       ...form,
@@ -37,8 +43,12 @@ const Register = () => {
     };
 
     try {
-      await axios.post("http://localhost:8080/api/auth/register", formData);
+      const res = await axios.post("http://localhost:8080/api/auth/register", formData);
+      if(res.status == 200) {
       alert("Registration successful!");
+      navigate("/login");
+      }
+      
     } catch (err) {
       alert("Registration failed");
       console.error(err);
@@ -85,7 +95,15 @@ const Register = () => {
       )}
       {role === "restaurant" && <RestaurantFields onChange={handleChange} />}
 
-      <button onClick={handleSubmit}>Register</button>
+      <button onClick={handleSubmit} className="register-button">
+        Register
+      </button>
+
+      <div className="login-redirect-container">
+      <button onClick={() => navigate("/login")} className="login-redirect-btn">
+        Already have an account?{" "}
+      </button>
+      </div>
     </div>
   );
 };

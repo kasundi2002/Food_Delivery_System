@@ -26,16 +26,16 @@ const DeliveryNavbar = () => {
   return (
     <Navbar bg="dark" variant="dark" expand="lg">
       <Container>
-        <Navbar.Brand as={Link} to="/delivery">
+        <Navbar.Brand as={Link} to="/delivery/home">
           Delivery Dashboard
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="delivery-navbar-nav" />
         <Navbar.Collapse id="delivery-navbar-nav">
           <Nav className="me-auto">
-            <Nav.Link as={Link} to="/profile">
+            <Nav.Link as={Link} to="/delivery/profile">
               Profile
             </Nav.Link>
-            <Nav.Link as={Link} to="/history">
+            <Nav.Link as={Link} to="/delivery/history">
               History
             </Nav.Link>
           </Nav>

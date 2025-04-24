@@ -2,26 +2,59 @@ import { useEffect, useState } from "react";
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
+        const raw = localStorage.getItem("token");
+
+        let token = "";
+        let id = "";
+
+        try {
+          const parsed = JSON.parse(raw); // ✅ only works if stored as JSON
+          token = parsed.token;
+          id = parsed.userId;
+        } catch (err) {
+          console.log("Token is already a string or malformed JSON", err);
+          token = raw; // fallback
+          id = localStorage.getItem("userId"); // fallback if userId was stored separately
+        }
+
+        console.log("Token (final string):", token);
+        console.log("inside Delivery Home");
+        console.log("userId:", id);
+
+      if (!token) {
+        setError("No token found. Please log in.");
+        return;
+      }
+
       try {
-        const res = await fetch("http://localhost:4000/delivery/profile", {
+        const res = await fetch("http://localhost:4000/api/delivery/profile", {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         });
-        if (!res.ok) throw new Error("Failed to fetch profile");
+
+        if (!res.ok) {
+          const errorMessage = await res.text();
+          throw new Error(`Failed to fetch profile: ${errorMessage}`);
+        }
+
         const data = await res.json();
         setProfile(data);
       } catch (err) {
         console.error(err);
+        setError(err.message);
       }
     };
+
     fetchProfile();
-    
   }, []);
 
+
+  if (error) return <p>{error}</p>;
   if (!profile) return <p>Loading profile...</p>;
 
   return (

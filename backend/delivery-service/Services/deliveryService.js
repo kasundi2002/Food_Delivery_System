@@ -38,65 +38,39 @@ const assignOrder = async (orderId, token = null) => {
   };
 };
 
-// 🚀 Update delivery person's profile
-const updateProfile = async (deliveryPersonId, updates) => {
-  const updated = await DeliveryPerson.findByIdAndUpdate(
-    deliveryPersonId,
-    { $set: updates },
-    { new: true }
-  );
-  return updated;
-};
-
-// ✅ Fetch assigned orders from order-service
-const getAssignedOrders = async (deliveryPersonId, token) => {
-  return await makeServiceRequest(
-    "orderService",
-    "GET",
-    `/delivery/${deliveryPersonId}/assigned`,
-    {}, // no body for GET
-    token
-  );
+module.exports = {
+  assignOrder,
 };
 
 // ✅ Accept a specific order
-const acceptOrder = async (orderId, deliveryPersonId, token) => {
-  return await makeServiceRequest(
-    "orderService",
-    "POST",
-    `/accept/${orderId}`,
-    { deliveryPersonId },
-    token
-  );
-};
+// const acceptOrder = async (orderId, deliveryPersonId, token) => {
+//   return await makeServiceRequest(
+//     "orderService",
+//     "POST",
+//     `/accept/${orderId}`,
+//     { deliveryPersonId },
+//     token
+//   );
+// };
 
-// ✅ Update the order status (e.g., Out for Delivery, Delivered)
-const updateOrderStatus = async (orderId, status, token) => {
-  return await makeServiceRequest(
-    "orderService",
-    "PUT",
-    `/status/${orderId}`,
-    { status },
-    token
-  );
-};
+// // ✅ Update the order status (e.g., Out for Delivery, Delivered)
+// const updateOrderStatus = async (orderId, status, token) => {
+//   return await makeServiceRequest(
+//     "orderService",
+//     "PUT",
+//     `/status/${orderId}`,
+//     { status },
+//     token
+//   );
+// };
 
-// ✅ Get delivery history from order-service
-const getDeliveryHistory = async (deliveryPersonId, token) => {
-  return await makeServiceRequest(
-    "orderService",
-    "GET",
-    `/delivery/${deliveryPersonId}/history`,
-    {}, // no body for GET
-    token
-  );
-};
-
-module.exports = {
-  getAssignedOrders,
-  acceptOrder,
-  updateOrderStatus,
-  getDeliveryHistory,
-  updateProfile,
-  assignOrder,
-};
+// // ✅ Get delivery history from order-service
+// const getDeliveryHistory = async (deliveryPersonId, token) => {
+//   return await makeServiceRequest(
+//     "orderService",
+//     "GET",
+//     `/delivery/${deliveryPersonId}/history`,
+//     {}, // no body for GET
+//     token
+//   );
+// };
