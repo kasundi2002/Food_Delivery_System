@@ -204,11 +204,14 @@ const getAssignedOrders = async (req, res) => {
 };
 
 const acceptOrder = async (req, res) => {
+  console.log("Accepting order:", req.params.orderId);
+  console.log("Request body:", req.body);
   try {
     const { deliveryPersonId } = req.body;
-    const order = await Order.findById(req.params.id);
-
+    const order = await Order.findById(req.params.orderId);
+    console.log("Order found:", order);
     if (!order) return res.status(404).json({ message: "Order not found" });
+    //If the order already has a delivery person assigned, and the currently assigned deliveryPerson is NOT the same as the one trying to accept it now, then reject it.
     if (
       order.deliveryPerson &&
       order.deliveryPerson.toString() !== deliveryPersonId
@@ -216,8 +219,11 @@ const acceptOrder = async (req, res) => {
       return res.status(400).json({ message: "Order already accepted" });
     }
 
+    console.log("Order found:", order);
     order.deliveryPerson = deliveryPersonId;
+    console.log("Delivery Person ID:", deliveryPersonId);
     order.status = "Accepted";
+    console.log("Order Status:", order.status);
     await order.save();
 
     res.status(200).json(order);

@@ -29,7 +29,7 @@ const OrderCard = ({ order, onAccept, onDecline, driverLocation }) => {
       <p>Status: {order.status}</p>
       {order.items.map((item, i) => (
         <p key={i}>
-          {item.name} × {item.quantity}
+          {item.foodItem?.name || "Unnamed Item"} × {item.quantity}
         </p>
       ))}
 

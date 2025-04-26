@@ -24,11 +24,6 @@ const getProductById = async (req, res) => {
   }
 };
 
-// controllers/restaurantController.js
-
-const Restaurant = require("../Models/Restaurant");
-const Product = require("../Models/Product");
-
 const addProductToRestaurant = async (req, res) => {
   try {
     const { restaurantId } = req.params;

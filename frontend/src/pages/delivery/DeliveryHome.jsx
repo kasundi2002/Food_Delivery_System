@@ -11,7 +11,7 @@ const DeliveryHome = () => {
   const [geolocationDenied, setGeolocationDenied] = useState(false);
 
   const raw = localStorage.getItem("token");
-
+  let deliveryPersonId = ""; // Initialize deliveryPersonId
   let token = "";
   let id = "";
 
@@ -24,10 +24,6 @@ const DeliveryHome = () => {
     token = raw; // fallback
     id = localStorage.getItem("userId"); // fallback if userId was stored separately
   }
-
-  // console.log("Token (final string):", token);
-  // console.log("inside Delivery Home");
-  // console.log("userId:", id);
 
   const fetchAssignedOrders = useCallback(async () => {
 
@@ -43,7 +39,8 @@ const DeliveryHome = () => {
       console.log("Response from server:", res.data);
       
       if (res.data.success) {
-        const orders = res.data.orders || [];
+        const orders = res.data.data ;
+        console.log("Assigned orders:", orders);
         if (orders.length === 0) {
           alert("No assigned orders found.");
           setAssignedOrders([]);
@@ -61,8 +58,8 @@ const DeliveryHome = () => {
   // Fetch assigned orders
   useEffect(() => {
     if (id && token) {
-      console.log("Fetching assigned orders for userId:", id);
-     fetchAssignedOrders();
+    console.log("Fetching assigned orders for userId:", id);
+    fetchAssignedOrders();
     } else if (!id) {
       console.error("User ID is not available in localStorage");
     } else if (!token) {
@@ -156,10 +153,6 @@ const DeliveryHome = () => {
       setLoading(true);
       const newStatus = !availability;
 
-      // console.log("Toggling availability to:", newStatus);
-      // console.log("Token for availability toggle:", token);
-      // console.log("User ID for availability toggle:", id);
-
       const res = await axios.put(
         `http://localhost:4000/api/delivery/UpdateAvailability/${id}`,
         { isAvailable: newStatus },
@@ -185,22 +178,30 @@ const DeliveryHome = () => {
 
   // Accept an order
   const handleAccept = async (orderId) => {
+    deliveryPersonId = id; // Use the ID from localStorage or state
+    console.log('Inside accept order function');
+    console.log("Accepting order:", orderId);
     try {
-      await axios.post(
+      const acceptResponse = await axios.post(
         `http://localhost:4040/api/orders/accept/${orderId}`,
-        {},
+        { deliveryPersonId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      alert("Order accepted!");
-      setAssignedOrders((orders) =>
-        orders.map((o) =>
-          o._id === orderId ? { ...o, status: "Accepted" } : o
-        )
-      );
+      if (acceptResponse.status === 200) 
+        {
+          alert("Order accepted!");
+
+          setAssignedOrders((orders) =>
+            orders.map((o) =>
+              o._id === orderId ? { ...o, status: "Accepted" } : o
+            )
+          );
+        }
+
     } catch (err) {
       console.error(err);
       alert("Failed to accept order");
