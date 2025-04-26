@@ -15,6 +15,9 @@ const Product = new mongoose.Schema(
     description: {
       type: String,
     },
+    url:{
+      type:String
+    },
 
     restaurantId: {
       type: mongoose.Schema.Types.ObjectId,
