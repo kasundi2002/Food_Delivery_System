@@ -1,6 +1,7 @@
 // controllers/restaurantController.js
 
-const Restaurant = require("../models/Restaurant");
+const Restaurant = require("../Models/Restaurant");
+const Product = require("../Models/Product");
 
 const addProductToRestaurant = async (req, res) => {
   try {
@@ -11,6 +12,16 @@ const addProductToRestaurant = async (req, res) => {
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
+
+    const product = new Product({
+      name,
+      price,
+      description,
+      isAvailable: isAvailable ?? true,
+      restaurantId, // ✅ Add the missing restaurantId
+    });
+
+    await product.save();
 
     const newItem = {
       name,
@@ -28,6 +39,28 @@ const addProductToRestaurant = async (req, res) => {
   }
 };
 
+
+// 🥘 GET /api/restaurants/:restaurantId/items
+const getAllProductsInRestaurant = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    res.status(200).json({
+      message: "Products fetched successfully",
+      items: restaurant.items,
+    });
+  } catch (err) {
+    console.error("Error fetching products:", err.message);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 module.exports = {
   addProductToRestaurant,
+  getAllProductsInRestaurant, 
 };

@@ -1,15 +1,26 @@
 import MapView from "./MapView";
 
 const OrderCard = ({ order, onAccept, onDecline, driverLocation }) => {
-  const restaurantCoords = order.restaurantLocation?.coordinates
-    ?.slice()
-    .reverse(); // [lat, lng]
-  const driverCoords = driverLocation?.slice().reverse(); // [lat, lng]
+  // Extract coordinates safely
+  const restaurantCoords =
+    Array.isArray(order?.restaurantLocation?.coordinates) &&
+    order.restaurantLocation.coordinates.length === 2
+      ? order.restaurantLocation.coordinates.slice().reverse()
+      : null;
 
-  const markers = [
-    { label: "Restaurant", coordinates: restaurantCoords },
-    { label: "You", coordinates: driverCoords },
-  ];
+  const driverCoords =
+    Array.isArray(driverLocation) && driverLocation.length === 2
+      ? driverLocation.slice().reverse()
+      : null;
+
+  // Prepare markers only if coordinates are valid
+  const markers = [];
+  if (restaurantCoords) {
+    markers.push({ label: "Restaurant", coordinates: restaurantCoords });
+  }
+  if (driverCoords) {
+    markers.push({ label: "You", coordinates: driverCoords });
+  }
 
   return (
     <div className="order-card border p-3 mb-3 rounded shadow-sm">
@@ -22,7 +33,11 @@ const OrderCard = ({ order, onAccept, onDecline, driverLocation }) => {
         </p>
       ))}
 
-      <MapView markers={markers} />
+      {markers.length > 0 ? (
+        <MapView markers={markers} />
+      ) : (
+        <p className="text-muted">Location data unavailable</p>
+      )}
 
       <div className="mt-2">
         {onAccept && (

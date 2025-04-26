@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "../../styles/pages/profilePage.css"; 
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -58,29 +59,48 @@ const Profile = () => {
   if (!profile) return <p>Loading profile...</p>;
 
   return (
-    <div className="container mt-4">
-      <h3>My Profile</h3>
-      <p>
-        <strong>Name:</strong> {profile.name}
-      </p>
-      <p>
-        <strong>Email:</strong> {profile.email}
-      </p>
-      <p>
-        <strong>Phone:</strong> {profile.phone}
-      </p>
-      <p>
-        <strong>Vehicle Number:</strong> {profile.vehicleNumber}
-      </p>
-      <p>
-        <strong>License:</strong> {profile.license}
-      </p>
-      <p>
-        <strong>Gender:</strong> {profile.gender}
-      </p>
-      <p>
-        <strong>Status:</strong> {profile.status}
-      </p>
+    <div className="profile-container">
+      <div className="profile-detail">
+        <p>
+          <strong>Name:</strong> {profile.name}
+        </p>
+        <p>
+          <strong>Email:</strong> {profile.email}
+        </p>
+        <p>
+          <strong>Phone:</strong> {profile.phone}
+        </p>
+        <p>
+          <strong>Vehicle Number:</strong> {profile.vehicleNumber}
+        </p>
+        <p>
+          <strong>License:</strong> {profile.license}
+        </p>
+        <p>
+          <strong>Gender:</strong> {profile.gender}
+        </p>
+        <p>
+          <strong>Status:</strong> {profile.status}
+        </p>
+        <button
+          className="btn btn-primary me-2"
+          onClick={() => alert("Edit Profile")}
+        >
+          Edit Profile
+        </button>
+        <button
+          className="btn btn-secondary me-2"
+          onClick={() => alert("Change Password")}
+        >
+          Change Password
+        </button>
+        <button
+          className="btn btn-danger"
+          onClick={() => alert("Delete Account")}
+        >
+          Delete Account
+        </button>
+      </div>
     </div>
   );
 };

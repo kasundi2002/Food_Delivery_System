@@ -13,6 +13,7 @@ const {
   updateOrderStatus,
   getDeliveryHistory,
   declineOrder,
+  getOrderById,
 } = require("../Controllers/orderController");
 // These routes are specifically for the delivery-service to call
 
@@ -21,6 +22,9 @@ router.post("/create",createOrder);
 
 ///http://order-service:4040/api/orders/
 router.get("/",getAllOrders);
+
+// hhtp://order-service:4040/api/orders/:orderId
+router.get('/getOrder/:orderId', getOrderById);
 
 //http://order-service:4040/api/orders/unassigned
 router.get("/unassigned",getUnassignedOrders);

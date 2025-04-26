@@ -9,6 +9,7 @@ const {loginUser} = require("./../services/authService");
 const bcrypt = require("bcryptjs");
 
 const registerUser = async (req, res) => {
+try{
     console.log("Request body:", req.body); // Debugging log
     const userData = req.body;
     
@@ -65,7 +66,7 @@ const registerUser = async (req, res) => {
           userId: newUser._id,
           restaurantName: userData.restaurantName || "", // fallback to empty if not provided
           restaurantOwner: name,
-          address: userData.address || "",
+          address: userData.location || "",
           phone: userData.phone || "",
           email: email,
           category: userData.category || "",
@@ -111,7 +112,7 @@ const registerUser = async (req, res) => {
         const newCustomer = new Customer({
           userId: newUser._id,
           name: name,
-          address: userData.address || "",
+          address: userData.location || "",
           phone: userData.phone || "",
           email: email,
           favoriteRestaurants: [],
@@ -149,7 +150,15 @@ const registerUser = async (req, res) => {
        }
     }
 
-    return newUser;
+    return res.status(201).json({
+      message: "User registered successfully",
+      newUser,
+  });
+}
+  catch(err){
+      console.error("Error in registerUser:", err.message); // Debugging log
+      return res.status(500).json({ error: err.message });
+    }
 };
 
 const loginController = async (req, res) => {

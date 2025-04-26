@@ -44,7 +44,7 @@ const Register = () => {
 
     try {
       const res = await axios.post("http://localhost:8080/api/auth/register", formData);
-      if(res.status == 200) {
+      if(res.status == 201) {
       alert("Registration successful!");
       navigate("/login");
       }
@@ -86,23 +86,36 @@ const Register = () => {
         <option value="restaurant">Restaurant</option>
       </select>
 
-      {role === "customer" && <CustomerFields onChange={handleChange} />}
+      {role === "customer" && (
+        <CustomerFields
+          onChange={handleChange}
+          onLocationChange={(coords) => setCoordinates(coords)}
+        />
+      )}
       {role === "delivery" && (
         <DeliveryPersonFields
           onChange={handleChange}
           onLocationChange={(coords) => setCoordinates(coords)} // 👈 receive location
         />
       )}
-      {role === "restaurant" && <RestaurantFields onChange={handleChange} />}
+      {role === "restaurant" && (
+        <RestaurantFields
+          onChange={handleChange}
+          onLocationChange={(coords) => setCoordinates(coords)} // ✅ Fix: pass the missing prop
+        />
+      )}
 
       <button onClick={handleSubmit} className="register-button">
         Register
       </button>
 
       <div className="login-redirect-container">
-      <button onClick={() => navigate("/login")} className="login-redirect-btn">
-        Already have an account?{" "}
-      </button>
+        <button
+          onClick={() => navigate("/login")}
+          className="login-redirect-btn"
+        >
+          Already have an account?{" "}
+        </button>
       </div>
     </div>
   );

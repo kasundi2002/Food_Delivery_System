@@ -5,6 +5,8 @@ const DeliveryPerson = require("../Models/DeliveryPerson");
 // Automatically assign an available delivery person to an order
 const assignOrder = async (orderId, token = null) => {
   // 1. Find the first available delivery person
+  console.log("inside delivery-service service folder");
+
   const availableDriver = await DeliveryPerson.findOne({
     isAvailable: true,
     status: "Active",
@@ -14,7 +16,38 @@ const assignOrder = async (orderId, token = null) => {
     throw new Error("No available delivery person found");
   }
 
-  // 2. Assign the delivery person to the order via order-service
+  console.log("Available driver found:", availableDriver.name);
+  console.log("Driver ID:", availableDriver._id);
+  console.log("Order ID:", orderId);
+
+  const order = await makeServiceRequest(
+    "orderService",
+    "GET",
+    `/getOrder/${orderId}`,
+    null,
+    token
+  );
+  
+  console.log("Order response from order-service:", order);  
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  const orderLocation = order.restaurantLocation; 
+  console.log("Order location:", orderLocation);
+  console.log("Driver location:", availableDriver.location);
+ 
+  const driverLocation = availableDriver.location; 
+  const distance = calculateDistance(driverLocation, orderLocation);
+
+  const maxDistance = 5; // in kilometers
+
+  if (distance > maxDistance) {
+    throw new Error("No available driver within the required range");
+  }
+
+  // 4. Assign the delivery person to the order via order-service
   const result = await makeServiceRequest(
     "orderService",
     "POST",
@@ -23,9 +56,13 @@ const assignOrder = async (orderId, token = null) => {
     token
   );
 
-  // 3. Mark the driver as unavailable (optional)
+  console.log("Order assignment result:", result);
+
+  // 5. Mark the driver as unavailable (optional)
   availableDriver.isAvailable = false;
-  await availableDriver.save();
+  const assigningDelivery = await availableDriver.save();
+
+  console.log("Driver availability updated:", assigningDelivery.isAvailable);
 
   return {
     message: "Order successfully assigned to delivery person",
@@ -38,39 +75,29 @@ const assignOrder = async (orderId, token = null) => {
   };
 };
 
+const calculateDistance = (driverLocation, orderLocation) => {
+  const toRadians = (degree) => (degree * Math.PI) / 180;
+
+  const R = 6371; // Radius of Earth in km
+
+  const lat1 = toRadians(driverLocation.lat);
+  const lon1 = toRadians(driverLocation.lon);
+  const lat2 = toRadians(orderLocation.lat);
+  const lon2 = toRadians(orderLocation.lon);
+
+  const dLat = lat2 - lat1;
+  const dLon = lon2 - lon1;
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  const distance = R * c; // in kilometers
+  return distance;
+};
+
 module.exports = {
   assignOrder,
 };
 
-// ✅ Accept a specific order
-// const acceptOrder = async (orderId, deliveryPersonId, token) => {
-//   return await makeServiceRequest(
-//     "orderService",
-//     "POST",
-//     `/accept/${orderId}`,
-//     { deliveryPersonId },
-//     token
-//   );
-// };
-
-// // ✅ Update the order status (e.g., Out for Delivery, Delivered)
-// const updateOrderStatus = async (orderId, status, token) => {
-//   return await makeServiceRequest(
-//     "orderService",
-//     "PUT",
-//     `/status/${orderId}`,
-//     { status },
-//     token
-//   );
-// };
-
-// // ✅ Get delivery history from order-service
-// const getDeliveryHistory = async (deliveryPersonId, token) => {
-//   return await makeServiceRequest(
-//     "orderService",
-//     "GET",
-//     `/delivery/${deliveryPersonId}/history`,
-//     {}, // no body for GET
-//     token
-//   );
-// };

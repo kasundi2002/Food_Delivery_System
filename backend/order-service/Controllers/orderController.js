@@ -1,43 +1,106 @@
 const Order = require("./../Models/Order");
 const orderService = require("../Services/orderService");
+const axios = require("axios"); // If not already imported
 
 const createOrder = async (req, res) => {
   try {
     const {
       customerId,
       restaurantId,
-      deliveryPerson, // optional
       items,
       totalAmount,
       deliveryLocation,
       restaurantLocation,
-      deliveryTimeEstimate,
       paymentMethod,
-      paymentStatus, // optional
     } = req.body;
 
+    // 1. Create the order
     const newOrder = new Order({
       customerId,
       restaurantId,
-      deliveryPerson: deliveryPerson || null,
       items,
       totalAmount,
       deliveryLocation,
       restaurantLocation,
-      deliveryTimeEstimate,
       paymentMethod,
-      paymentStatus: paymentStatus || "Pending", // default if not provided
+      paymentStatus: "Pending",
+      status: "Pending",
     });
 
-    const savedOrder = await newOrder.save();
-    res.status(201).json(savedOrder);
-  } catch (error) {
-    console.error("Error creating order:", error);
-    res.status(500).json({ message: "Failed to create order", error });
+    const newOrderResponse = await newOrder.save();
+
+    if(!newOrderResponse) {
+      return res.status(500).json({ message: "Failed to create order" });
+    }
+
+    console.log("✅ Order created:", newOrder._id);
+
+    // 2. Notify delivery-service to assign a driver
+    try {
+      console.log("🚚 Notifying delivery service to assign a driver...");
+      const deliveryServiceUrl =
+        "http://localhost:4000/api/delivery/assign";
+
+      console.log(`newOrder._id`, newOrder._id);
+      console.log(`deliveryServiceUrl`, deliveryServiceUrl);      
+      const assignResponse = await axios.post(
+        deliveryServiceUrl,
+        { orderId: newOrder._id },
+        {
+          headers: {
+            Authorization: req.headers.authorization || "", // Forward JWT token if available
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log(`Inside order controller: assignResponse`, assignResponse.data);
+      
+      if(assignResponse.status !== 200) {
+        return res.status(500).json({ message: "Failed to notify delivery service" });
+      }
+
+      console.log("🚚 Order assigned to delivery person:", assignResponse.data);
+    } catch (assignErr) {
+      console.error(
+        "❌ Failed to assign order to delivery person:",
+        assignErr.message
+      );
+      // Optional: you can return a warning message or save this info in order logs
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Order created successfully",
+      data: newOrder,
+    });
+  } catch (err) {
+    console.error("❌ Error creating order:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Error creating order",
+      error: err.message,
+    });
   }
 };
 
+const getOrderById = async (req, res) => {
+  console.log('get order by id function called')
+  console.log("Fetching order by ID:", req.params.orderId);
+  try {
+    const { orderId } = req.params;
+    console.log("Order ID:", orderId);
+    const order = await Order.findById(orderId);
+    console.log("Order:", order);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
+    res.status(200).json(order); // This will be used by delivery-service
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -65,27 +128,36 @@ const assignDeliveryPerson = async (req, res) => {
     const { orderId } = req.params;
     const { deliveryPersonId } = req.body;
 
-    // 1. Find the order
+    // 1. Find the order by ID
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // 2. Assign the delivery person and update status
+    // 2. Ensure the order is not already assigned
+    if (order.status === "Assigned") {
+      return res.status(400).json({ message: "Order already assigned" });
+    }
+
+    // 3. Check if the delivery person is already assigned to another order
+    const existingOrder = await Order.findOne({
+      deliveryPerson: deliveryPersonId,
+      status: { $ne: "Delivered" },
+    });
+    if (existingOrder) {
+      return res
+        .status(400)
+        .json({
+          message: "Delivery person is already assigned to another order",
+        });
+    }
+
+    // 4. Update the order with the assigned delivery person and change the status to 'Assigned'
     order.deliveryPerson = deliveryPersonId;
     order.status = "Assigned";
-
-    // 3. Push into status history
-    // order.statusHistory.push({
-    //   status: "Assigned",
-    //   updatedBy: deliveryPersonId, // or use req.user.id if needed
-    // });
-
-    // // 4. Update last updated time
-    // order.lastUpdated = Date.now();
-
     await order.save();
 
+    // 5. Return success response
     res.status(200).json({
       message: "Delivery person assigned successfully",
       order,
@@ -106,7 +178,7 @@ const getAssignedOrders = async (req, res) => {
   try {
     // Fetch orders where the assignedTo field matches the delivery person’s ID
     const assignedOrders = await Order.find({ deliveryPerson: deliveryPersonId });
-
+    console.log("Assigned Orders:", assignedOrders);
     if (assignedOrders.length === 0) {
       return res.status(200).json({
         success: true,
@@ -168,6 +240,8 @@ const updateOrderStatus = async (req, res) => {
 };
 
 const getDeliveryHistory = async (req, res) => {
+  console.log("Fetching delivery history for delivery person");
+  const deliveryPersonId = req.params.id; // Assuming you have user authentication (e.g., via JWT)
   try {
     const { deliveryPersonId, startDate, endDate, status } = req.query;
     const filters = {
@@ -177,6 +251,8 @@ const getDeliveryHistory = async (req, res) => {
     };
 
     const orders = await orderService.getDeliveryHistory(deliveryPersonId, filters);
+    console.log("Delivery History:", orders);
+    
     res.status(200).json(orders);
   } catch (err) {
     console.error("Get Delivery History Error:", err.message);
@@ -226,6 +302,7 @@ const declineOrder = async (req, res) => {
 
 module.exports = {
   createOrder,
+  getOrderById,
   getAllOrders,
   assignDeliveryPerson,
   getUnassignedOrders,

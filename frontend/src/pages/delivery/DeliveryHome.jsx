@@ -25,13 +25,12 @@ const DeliveryHome = () => {
     id = localStorage.getItem("userId"); // fallback if userId was stored separately
   }
 
-  console.log("Token (final string):", token);
-  console.log("inside Delivery Home");
-  console.log("userId:", id);
+  // console.log("Token (final string):", token);
+  // console.log("inside Delivery Home");
+  // console.log("userId:", id);
 
   const fetchAssignedOrders = useCallback(async () => {
-    console.log("Fetching assigned orders for userId:", id);
-    console.log("Token for assigned orders:", token);
+
     try {
       const res = await axios.get(
         `http://localhost:4040/api/orders/getAssignedOrders/${id}`,
@@ -41,6 +40,8 @@ const DeliveryHome = () => {
           },
         }
       );
+      console.log("Response from server:", res.data);
+      
       if (res.data.success) {
         const orders = res.data.orders || [];
         if (orders.length === 0) {
@@ -72,8 +73,8 @@ const DeliveryHome = () => {
   // Fetch delivery history
   useEffect(() => {
     const fetchDeliveryHistory = async () => {
-      console.log("Fetching delivery history for userId:", id);
-      console.log("Token for delivery history:", token);
+      // console.log("Fetching delivery history for userId:", id);
+      // console.log("Token for delivery history:", token);
       try {
         const res = await axios.get(
           "http://localhost:4040/api/orders/history",
@@ -100,8 +101,8 @@ const DeliveryHome = () => {
   // Fetch delivery person availability status
   useEffect(() => {
     const fetchAvailability = async () => {
-      console.log("Fetching availability status for userId:", id);
-      console.log("Token for availability check:", token);
+      // console.log("Fetching availability status for userId:", id);
+      // console.log("Token for availability check:", token);
       try {
         const res = await axios.get(
           `http://localhost:4000/api/delivery/availability/${id}`,
@@ -135,7 +136,7 @@ const DeliveryHome = () => {
         setDriverLocation([longitude, latitude]);
         console.log(`geolocationDenied: ${geolocationDenied}`);
         console.log("Driver location set:", [longitude, latitude]);
-        fetchAssignedOrders();
+        // fetchAssignedOrders();
       },
       (err) => {
         console.log(`geolocationDenied: ${geolocationDenied}`);
@@ -155,7 +156,11 @@ const DeliveryHome = () => {
       setLoading(true);
       const newStatus = !availability;
 
-      const res = await axios.post(
+      // console.log("Toggling availability to:", newStatus);
+      // console.log("Token for availability toggle:", token);
+      // console.log("User ID for availability toggle:", id);
+
+      const res = await axios.put(
         `http://localhost:4000/api/delivery/UpdateAvailability/${id}`,
         { isAvailable: newStatus },
         {
@@ -164,7 +169,7 @@ const DeliveryHome = () => {
           },
         }
       );
-      console.log(res.data);
+
       if (!res.data.success) {
         throw new Error("Failed to update availability status");
       }
