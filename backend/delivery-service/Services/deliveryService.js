@@ -15,9 +15,17 @@ const assignOrder = async (orderId, token = null) => {
   if (!availableDriver) {
     throw new Error("No available delivery person found");
   }
+  const availableDriverUserId = availableDriver.userId;
 
+  const Driver = await DeliveryPerson.findOne({
+    userId: availableDriverUserId,
+  });
+
+  deliveryPersonDriverId = Driver._id;
+  
   console.log("Available driver found:", availableDriver.name);
   console.log("Driver ID:", availableDriver._id);
+  console.log("User ID of driver:", availableDriver.userId);
   console.log("Order ID:", orderId);
 
   const order = await makeServiceRequest(
@@ -52,7 +60,10 @@ const assignOrder = async (orderId, token = null) => {
     "orderService",
     "POST",
     `/assign/${orderId}`,
-    { deliveryPersonId: availableDriver._id },
+    {
+      deliveryPersonUserId: availableDriverUserId,
+      deliveryPersonDriverId: deliveryPersonDriverId,
+    },
     token
   );
 

@@ -53,8 +53,7 @@ const createOrder = async (req, res) => {
           },
         }
       );
-      console.log(`Inside order controller: assignResponse`, assignResponse.data);
-      
+            
       if(assignResponse.status !== 200) {
         return res.status(500).json({ message: "Failed to notify delivery service" });
       }
@@ -101,6 +100,7 @@ const getOrderById = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -126,7 +126,8 @@ const getUnassignedOrders = async (req, res) => {
 const assignDeliveryPerson = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { deliveryPersonId } = req.body;
+    const { deliveryPersonUserId } = req.body;
+    const {deliveryPersonDriverId} = req.body; 
 
     // 1. Find the order by ID
     const order = await Order.findById(orderId);
@@ -141,9 +142,11 @@ const assignDeliveryPerson = async (req, res) => {
 
     // 3. Check if the delivery person is already assigned to another order
     const existingOrder = await Order.findOne({
-      deliveryPerson: deliveryPersonId,
+      deliveryPerson: deliveryPersonDriverId,
       status: { $ne: "Delivered" },
     });
+
+
     if (existingOrder) {
       return res
         .status(400)
@@ -153,7 +156,7 @@ const assignDeliveryPerson = async (req, res) => {
     }
 
     // 4. Update the order with the assigned delivery person and change the status to 'Assigned'
-    order.deliveryPerson = deliveryPersonId;
+    order.deliveryPerson = deliveryPersonDriverId;
     order.status = "Assigned";
     await order.save();
 
@@ -172,13 +175,28 @@ const assignDeliveryPerson = async (req, res) => {
 const getAssignedOrders = async (req, res) => {
   console.log("Fetching assigned orders for delivery person");
 
-  const deliveryPersonId = req.params.id; // Assuming you have user authentication (e.g., via JWT)
-  console.log("Delivery Person ID:", deliveryPersonId);
+  const deliveryPersonUserId = req.params.id; 
+  const deliveryProfile = await axios.get(
+        "http://localhost:4000/api/delivery/profile",
+        {
+          headers: {
+            Authorization: req.headers.authorization || "", // Forward JWT token if available
+            "Content-Type": "application/json",
+          },
+        }
+      );
+  console.log("Delivery Profile:", deliveryProfile.data);
 
+  deliveryPersonDriverId = deliveryProfile.data._id; 
+  
   try {
-    // Fetch orders where the assignedTo field matches the delivery person’s ID
-    const assignedOrders = await Order.find({ deliveryPerson: deliveryPersonId });
+    const assignedOrders = await Order.find({
+      deliveryPerson: deliveryPersonDriverId,
+      status: "Assigned",
+    });
+
     console.log("Assigned Orders:", assignedOrders);
+
     if (assignedOrders.length === 0) {
       return res.status(200).json({
         success: true,
@@ -204,24 +222,37 @@ const getAssignedOrders = async (req, res) => {
 };
 
 const acceptOrder = async (req, res) => {
-  console.log("Accepting order:", req.params.orderId);
-  console.log("Request body:", req.body);
+  console.log("Accepting order");
   try {
-    const { deliveryPersonId } = req.body;
-    const order = await Order.findById(req.params.orderId);
-    console.log("Order found:", order);
+    const { deliveryPersonUserId } = req.body;
+    const orderId = req.params.orderId;
+    console.log("Accepting order ID:", orderId);
+    const order = await Order.findById(orderId);
+
     if (!order) return res.status(404).json({ message: "Order not found" });
+
+    const deliveryProfile = await axios.get(
+      "http://localhost:4000/api/delivery/profile",
+      {
+        headers: {
+          Authorization: req.headers.authorization || "", // Forward JWT token if available
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const deliveryPersonDriverId = deliveryProfile.data._id; 
     //If the order already has a delivery person assigned, and the currently assigned deliveryPerson is NOT the same as the one trying to accept it now, then reject it.
     if (
       order.deliveryPerson &&
-      order.deliveryPerson.toString() !== deliveryPersonId
+      order.deliveryPerson.toString() !== deliveryPersonDriverId
     ) {
       return res.status(400).json({ message: "Order already accepted" });
     }
 
-    console.log("Order found:", order);
-    order.deliveryPerson = deliveryPersonId;
-    console.log("Delivery Person ID:", deliveryPersonId);
+    // console.log("Order found:", order);
+    order.deliveryPerson = deliveryPersonDriverId;
+    console.log("Delivery Person ID:", deliveryPersonDriverId);
     order.status = "Accepted";
     console.log("Order Status:", order.status);
     await order.save();
@@ -268,29 +299,49 @@ const getDeliveryHistory = async (req, res) => {
 
 // PUT /orders/decline/:orderId
 const declineOrder = async (req, res) => {
+  console.log("Declining order controller called");
   try {
-    const { orderId } = req.params;
-    const deliveryPersonId = req.body.deliveryPersonId; // Optional, for logging or verification
+    const orderId  = req.params.orderId;
+    console.log("Declining order ID:", orderId);
+
+    const deliveryPersonUserId = req.body; // Optional, for logging or verification
+    console.log("Delivery Person ID:", deliveryPersonUserId);
 
     const order = await Order.findById(orderId);
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
+    
+    console.log("Order found:", order);
 
-    if (!order.deliveryPerson || order.deliveryPerson.toString() !== deliveryPersonId) {
-      return res.status(403).json({ message: "You are not assigned to this order" });
+    const deliveryProfile = await axios.get(
+      "http://localhost:4000/api/delivery/profile",
+      {
+        headers: {
+          Authorization: req.headers.authorization || "", // Forward JWT token if available
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const deliveryPersonDriverId = deliveryProfile.data._id; 
+
+
+    if (
+      !order.deliveryPerson ||
+      order.deliveryPerson.toString() !== deliveryPersonDriverId
+    ) 
+    {
+      return res
+        .status(403)
+        .json({ message: "You are not assigned to this order" });
     }
 
     // Update order: remove assignment and set status back to Pending
+
     order.deliveryPerson = null;
     order.status = "Pending";
-
-    // Add to status history
-    order.statusHistory.push({
-      status: "Pending",
-      updatedBy: deliveryPersonId,
-    });
 
     await order.save();
 

@@ -15,7 +15,7 @@ router.post("/assign",verifyToken,assignOrder);
 
 // Driver routes
 // This route is used to fetch the profile of a driver
-//http://delivery-service:4000/api/delivery/profile
+//http://delivery-service:4000/api/delivery/profile/:id
 router.get("/profile", verifyToken, getProfile);
 
 // This route is used to update the profile of a driver

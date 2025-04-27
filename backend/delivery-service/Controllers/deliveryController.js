@@ -4,15 +4,19 @@ const DeliveryPerson = require("./../Models/DeliveryPerson");
 // 🧠 POST /api/delivery/assign 
 const assignOrder = async (req, res) => {
 
-  console.log("Assigning order with ID:", req.body.orderId);
+  console.log("delivery controller in delivery-service folder");
+
   const { orderId } = req.body;
   if (!orderId) {
     return res.status(400).json({ message: "Order ID is required" });
   }
+
   console.log("Order ID:", orderId);
+
   try {
     const result = await deliveryService.assignOrder(orderId, req.token);
     console.log("Order assignment result:", result);
+    
     if (result.error) {
       return res.status(500).json({ message: result.error });
     }
@@ -46,10 +50,7 @@ const updateProfile = async (req, res) => {
 // Get delivery person profile
 const getProfile = async (req, res) => {
   try {
-    console.log("inside getProfile function");
-    console.log("Fetching profile for user ID:", req.user.id);
-    console.log();
-
+    console.log("Fetching profile for userId:", req.user.id);
     const profile = await DeliveryPerson.findOne({ userId: req.user.id });
     console.log("profile:", profile);
     if (!profile) {
@@ -64,10 +65,9 @@ const getProfile = async (req, res) => {
 
 // GET /delivery/availability/:id
 const checkAvailability = async (req, res) => {
-  console.log("Checking availability for user ID:", req.params.id);
+
   try {
     const userId = req.params.id;
-    console.log("User ID from params:", userId);
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is missing" });

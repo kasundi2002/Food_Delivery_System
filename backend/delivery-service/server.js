@@ -2,26 +2,23 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const http = require("http");
-
 const { Server } = require("socket.io");
-
 const deliveryRoutes = require("./Routes/deliveryRoutes");
-
 require("dotenv").config();
 
-const app = express(); // ✅ Initialize app first!
+const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Update with frontend URL if needed
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
 
-app.use(cors()); // ✅ Enable CORS
-app.use(express.json()); // ✅ Parse JSON bodies
-
+// Middlewares
+app.use(cors());
+app.use(express.json());
 
 // Routes
 app.use("/api/delivery", deliveryRoutes);
@@ -43,11 +40,11 @@ io.on("connection", (socket) => {
 // Make `io` accessible to other modules (optional)
 app.set("io", io);
 
-// Start server
-const PORT = process.env.PORT || 4100;
-
-// Database connection
+// Connect Database
 connectDB();
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Start the server (IMPORTANT: use server.listen, NOT app.listen!)
+const PORT = process.env.PORT || 4100;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 module.exports = app;
