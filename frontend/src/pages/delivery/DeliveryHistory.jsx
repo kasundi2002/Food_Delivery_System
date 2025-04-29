@@ -33,6 +33,10 @@ const DeliveryHistory = () => {
           "http://localhost:4040/api/orders/history",
           {
             headers: { Authorization: `Bearer ${token}` },
+            params: {
+              deliveryPersonUserId: id,
+              status: "Delivered",
+            },
           }
         );
 
@@ -48,7 +52,7 @@ const DeliveryHistory = () => {
     };
 
     fetchHistory();
-  }, [token]);
+  }, [token,id]);
 
   const totalPages = Math.ceil(history.length / rowsPerPage);
   const paginatedData = history.slice(

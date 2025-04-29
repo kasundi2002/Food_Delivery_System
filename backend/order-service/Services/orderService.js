@@ -7,7 +7,13 @@ const USER_SERVICE_URL = "http://user-service:8080/api/auth"; // Replace with ac
  * Update the status of an order
  */
 const updateOrderStatus = async (orderId, status, deliveryPersonId) => {
+  console.log("Updating order status...inside order service");
+  console.log("Order ID:", orderId);
+  console.log("Delivery Person ID:", deliveryPersonId);
+  console.log("New Status:", status);
+
   try {
+    
     const order = await Order.findOne({
       _id: orderId,
       deliveryPerson: deliveryPersonId,
@@ -64,18 +70,12 @@ const updateOrderStatus = async (orderId, status, deliveryPersonId) => {
 /**
  * Get delivery history for a specific delivery person
  */
-const getDeliveryHistory = async (deliveryPersonId, filters = {}) => {
+const getDeliveryHistory = async (deliveryPersonDriverId, filters = {}) => {
   try {
-    const query = { deliveryPerson: deliveryPersonId };
-
-    if (filters.startDate || filters.endDate) {
-      query.createdAt = {};
-      if (filters.startDate) query.createdAt.$gte = new Date(filters.startDate);
-      if (filters.endDate) query.createdAt.$lte = new Date(filters.endDate);
-    }
+    const query = { deliveryPerson: deliveryPersonDriverId };
 
     if (filters.status) {
-      query.status = filters.status;
+      query.status = filters.status; // Filter by status
     }
 
     const orders = await Order.find(query)
@@ -120,6 +120,7 @@ const getDeliveryHistory = async (deliveryPersonId, filters = {}) => {
   }
 };
 
+
 // Helper to calculate delivery metrics
 const calculateDeliveryMetrics = (order) => {
   const metrics = {
@@ -159,7 +160,6 @@ module.exports = {
   getDeliveryHistory,
 };
 
-// const Order = require('../Models/Order');
 // const axios = require('axios'); // For calling user and restaurant services
 
 // const USER_SERVICE_URL = 'http://user-service/api/users'; // Change to actual URL

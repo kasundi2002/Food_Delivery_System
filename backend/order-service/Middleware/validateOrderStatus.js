@@ -1,6 +1,7 @@
 const validateOrderStatus = (req, res, next) => {
     const { status } = req.body;
     
+    console.log("Validating order status:", status);
     // List of valid statuses from Order model
     const validStatuses = [
         'Pending',

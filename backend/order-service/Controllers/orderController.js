@@ -264,9 +264,26 @@ const acceptOrder = async (req, res) => {
 };
 
 const updateOrderStatus = async (req, res) => {
+  console.log("Updating order status...inside order controller");
+  console.log("Order ID:", req.params.id);
+  console.log("Request Body:", req.body);
+
   try {
     const { deliveryPersonId, status } = req.body;
     const orderId = req.params.id;
+
+    const deliveryProfile = await axios.get(
+      "http://localhost:4000/api/delivery/profile",
+      {
+        headers: {
+          Authorization: req.headers.authorization || "", // Forward JWT token if available
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const deliveryPersonDriverId = deliveryProfile.data._id;
+    console.log("Delivery Person Driver ID:", deliveryPersonDriverId);
+    console.log("Delivery Person ID from request body:", deliveryPersonId);
 
     const updatedOrder = await orderService.updateOrderStatus(orderId, status, deliveryPersonId);
     res.status(200).json(updatedOrder);
@@ -278,24 +295,44 @@ const updateOrderStatus = async (req, res) => {
 
 const getDeliveryHistory = async (req, res) => {
   console.log("Fetching delivery history for delivery person");
-  const deliveryPersonId = req.params.id; // Assuming you have user authentication (e.g., via JWT)
-  try {
-    const { deliveryPersonId, startDate, endDate, status } = req.query;
-    const filters = {
-      startDate,
-      endDate,
-      status
-    };
 
-    const orders = await orderService.getDeliveryHistory(deliveryPersonId, filters);
+  const { deliveryPersonUserId } = req.params;
+
+  console.log("Delivery Person User ID:", deliveryPersonUserId);
+
+  try {
+    const deliveryProfile = await axios.get(
+      "http://localhost:4000/api/delivery/profile",
+      {
+        headers: {
+          Authorization: req.headers.authorization || "", // Forward JWT token if available
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const deliveryPersonDriverId = deliveryProfile.data._id;
+
+    // Get the status from query parameters (e.g., "Delivered")
+    const { status } = req.query;
+
+    // Pass filters to the service (only including status here)
+    const filters = { status };
+
+    // Call the service to fetch the history
+    const orders = await orderService.getDeliveryHistory(
+      deliveryPersonDriverId,
+      filters
+    );
     console.log("Delivery History:", orders);
-    
+
     res.status(200).json(orders);
   } catch (err) {
     console.error("Get Delivery History Error:", err.message);
     res.status(500).json({ message: "Error fetching delivery history" });
   }
 };
+
 
 // PUT /orders/decline/:orderId
 const declineOrder = async (req, res) => {

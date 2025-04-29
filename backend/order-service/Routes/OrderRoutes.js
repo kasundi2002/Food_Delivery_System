@@ -32,7 +32,6 @@ router.get("/unassigned",getUnassignedOrders);
 //http://order-service:4040/api/orders/assign/:orderId
 router.post("/assign/:orderId",assignDeliveryPerson);
 
-
 //http://order-service:4040/api/orders/getAssignedOrders/:id
 router.get("/getAssignedOrders/:id", verifyToken, getAssignedOrders);
 
@@ -40,7 +39,7 @@ router.get("/getAssignedOrders/:id", verifyToken, getAssignedOrders);
 router.post("/accept/:orderId",acceptOrder);
 
 //http://order-service:4040/api/orders//update-status/:id
-router.post("/update-status/:id", validateOrderStatus,updateOrderStatus);
+router.put("/update-status/:id", validateOrderStatus, updateOrderStatus);
 
 //http://order-service:4040/api/orders/history
 router.get("/history",getDeliveryHistory);

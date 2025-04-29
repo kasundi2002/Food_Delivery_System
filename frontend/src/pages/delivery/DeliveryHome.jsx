@@ -116,7 +116,6 @@ const DeliveryHome = () => {
     }
   }, [fetchAssignedOrders, geolocationDenied, id, token]); // ✅ include dependencies here
 
-  // Toggle delivery person availability
   const toggleAvailability = async () => {
     try {
       setLoading(true);
@@ -196,6 +195,23 @@ const DeliveryHome = () => {
         console.log("Decline response:", declineResponse.data);
         alert("Order declined.");
         setAssignedOrders((orders) => orders.filter((o) => o._id !== orderId));
+
+        const resAvailability = await axios.put(
+        `http://localhost:4000/api/delivery/updateAvailability/${order.deliveryPerson}`,
+        { isAvailable: true },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+        if (resAvailability.status === 200) {
+          console.log("Driver availability updated successfully.");
+          alert("Order delivered. You are now available for new deliveries.");
+        } else {
+          console.warn("Failed to update driver availability");
+          alert("Order delivered but failed to update availability.");
+        }
       }
     } catch (err) {
       console.error(err);
