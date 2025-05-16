@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivary-deployment
+  labels:
+    app: delivary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: delivary
+  template:
+    metadata:
+      labels:
+        app: delivary
+    spec:
+      containers:
+        - name: delivary
+          image: anjiii22/food-delivery-system:latest  # Update tag if needed
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3004
+          env:
+            - name: PORT
+              value: "3004"
+            - name: MONGO_URI
+              value: "mongodb+srv://anjidipzimx:qwer%401234@mycluster.bgekn.mongodb.net/?retryWrites=true&w=majority"
+            - name: JWT_SECRET
+              value: kasundi  # Change to a secure value in production
+            - name: JWT_EXPIRES_IN
+              value: "1d"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivary-service
+spec:
+  type: NodePort
+  selector:
+    app: delivary
+  ports:
+    - port: 3004
+      targetPort: 3004
+      nodePort: 30003

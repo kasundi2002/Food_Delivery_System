@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restaurant-deployment
+  labels:
+    app: restaurant
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: restaurant
+  template:
+    metadata:
+      labels:
+        app: restaurant
+    spec:
+      containers:
+        - name: restaurant
+          image: anjiii22/food-delivery-system:latest 
+          imagePullPolicy: Always # Change if using another repo/tag
+          ports:
+            - containerPort: 3003
+          env:
+            - name: PORT
+              value: "3003"
+            - name: MONGO_URI
+              value: mongodb+srv://kasundi2002:kasundi@forum.0prmr.mongodb.net/DS?retryWrites=true&w=majority&appName=Forum
+            - name: JWT_SECRET
+              value: kasundi
+            - name: JWT_EXPIRES_IN
+              value: 1d
+            # Add service discovery env if needed:
+            # - name: RESTAURANT_API_URL
+            #   value: http://restaurant-service:
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-service
+spec:
+  type: NodePort
+  selector:
+    app: restaurant
+  ports:
+    - port: 3002
+      targetPort: 3002
+      nodePort: 30001
